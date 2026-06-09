@@ -1,7 +1,7 @@
 pipeline {
 agent any
 
-```
+
 environment {
     IMAGE_NAME = "saiif/java-app"
     IMAGE_TAG = "latest"
@@ -81,7 +81,7 @@ post {
         sh 'docker image ls | head'
     }
 }
-```
+
 
 }
 
