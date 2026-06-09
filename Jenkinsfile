@@ -1,11 +1,10 @@
 pipeline {
 agent any
 
-
-
+```
 environment {
     IMAGE_NAME = "saiif/java-app"
-    IMAGE_TAG  = "${BUILD_NUMBER}"
+    IMAGE_TAG = "latest"
 }
 
 stages {
@@ -17,7 +16,7 @@ stages {
         }
     }
 
-    stage('Build') {
+    stage('Build Application') {
         steps {
             sh 'mvn clean package -DskipTests'
         }
@@ -27,8 +26,7 @@ stages {
         steps {
             sh '''
             docker build \
-            -t ${IMAGE_NAME}:${IMAGE_TAG} \
-            -t ${IMAGE_NAME}:latest .
+            -t ${IMAGE_NAME}:${IMAGE_TAG} .
             '''
         }
     }
@@ -42,29 +40,48 @@ stages {
                     passwordVariable: 'DOCKER_PASS'
                 )
             ]) {
-
                 sh '''
-                echo $DOCKER_PASS | docker login \
-                -u $DOCKER_USER \
+                echo "$DOCKER_PASS" | docker login \
+                -u "$DOCKER_USER" \
                 --password-stdin
 
                 docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                docker push ${IMAGE_NAME}:latest
                 '''
             }
+        }
+    }
+
+    stage('Deploy') {
+        steps {
+            sh '''
+            echo "Deployment Stage Started"
+
+            kubectl apply -f k8s/ || true
+
+            kubectl rollout restart deployment/java-app || true
+
+            kubectl get pods || true
+
+            echo "Deployment Stage Completed"
+            '''
         }
     }
 }
 
 post {
     success {
-        echo 'Docker image pushed successfully'
+        echo 'CI/CD Pipeline Completed Successfully'
     }
 
     failure {
-        echo 'Pipeline failed'
+        echo 'Pipeline Failed'
+    }
+
+    always {
+        sh 'docker image ls | head'
     }
 }
-
+```
 
 }
+
